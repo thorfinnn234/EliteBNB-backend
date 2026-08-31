@@ -1,20 +1,20 @@
 package com.elitebnb_backend.service;
 
+import com.resend.Resend;
+import com.resend.services.emails.model.SendEmailRequest;
+
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
 
 @Service
 public class EmailService {
 
-    private final JavaMailSender mailSender;
+    private final Resend resend;
 
-    @Value("${spring.mail.username}")
-    private String senderEmail;
-
-    public EmailService(JavaMailSender mailSender) {
-        this.mailSender = mailSender;
+    public EmailService(
+            @Value("${resend.api.key}") String apiKey
+    ) {
+        this.resend = new Resend(apiKey);
     }
 
     public void sendVerificationCode(
@@ -22,19 +22,35 @@ public class EmailService {
             String code
     ) {
 
-        SimpleMailMessage message = new SimpleMailMessage();
+        String html = """
+                <div style="font-family: Arial, sans-serif;">
+                    <h2>Verify your EliteBNB account</h2>
 
-        message.setFrom(senderEmail);
-        message.setTo(email);
-        message.setSubject("Verify your EliteBNB account");
+                    <p>Welcome to EliteBNB!</p>
 
-        message.setText(
-                "Welcome to EliteBNB!\n\n" +
-                        "Your verification code is: " + code +
-                        "\n\nThis code expires in 10 minutes." +
-                        "\n\nIf you did not create this account, ignore this email."
-        );
+                    <p>Your verification code is:</p>
 
-        mailSender.send(message);
+                    <h1 style="letter-spacing: 6px;">
+                        %s
+                    </h1>
+
+                    <p>This code expires in 10 minutes.</p>
+
+                    <p>
+                        If you did not create this account,
+                        you can ignore this email.
+                    </p>
+                </div>
+                """.formatted(code);
+
+        SendEmailRequest request =
+                SendEmailRequest.builder()
+                        .from("EliteBNB <onboarding@resend.dev>")
+                        .to(email)
+                        .subject("Verify your EliteBNB account")
+                        .html(html)
+                        .build();
+
+        resend.emails().send(request);
     }
 }

@@ -7,6 +7,7 @@ import com.elitebnb_backend.service.AuthService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import com.elitebnb_backend.dto.VerifyEmailRequest;
+import com.elitebnb_backend.dto.ResendVerificationRequest;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -46,6 +47,18 @@ public class AuthController {
 
         return ResponseEntity.ok(
                 "Email verified successfully"
+        );
+    }
+
+    @PostMapping("/resend-verification")
+    public ResponseEntity<String> resendVerification(
+            @RequestBody ResendVerificationRequest request
+    ) {
+
+        authService.resendVerificationCode(request);
+
+        return ResponseEntity.ok(
+                "Verification code resent successfully"
         );
     }
 }

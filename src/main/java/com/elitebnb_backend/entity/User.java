@@ -2,7 +2,9 @@ package com.elitebnb_backend.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+
 import java.time.LocalDateTime;
+
 @Entity
 @Table(name = "users")
 @Getter
@@ -30,12 +32,21 @@ public class User {
 
     private String phoneNumber;
 
+    @Column(length = 1000)
+    private String bio;
+
+    private String location;
+
+    @Column(length = 1000)
+    private String profileImageUrl;
+
     @Column(nullable = false)
     private boolean emailVerified = false;
 
     private String verificationCode;
 
     private LocalDateTime verificationCodeExpiry;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private Role role;

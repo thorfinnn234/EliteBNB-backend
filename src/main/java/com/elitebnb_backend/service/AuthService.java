@@ -4,6 +4,7 @@ import com.elitebnb_backend.dto.AuthResponse;
 import com.elitebnb_backend.dto.LoginRequest;
 import com.elitebnb_backend.dto.RegisterRequest;
 import com.elitebnb_backend.dto.VerifyEmailRequest;
+import com.elitebnb_backend.dto.ResendVerificationRequest;
 import com.elitebnb_backend.entity.Role;
 import com.elitebnb_backend.entity.User;
 import com.elitebnb_backend.repository.UserRepository;
@@ -11,6 +12,7 @@ import com.elitebnb_backend.security.JwtService;
 
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.Random;
@@ -36,6 +38,8 @@ public class AuthService {
     }
 
     // REGISTER
+    // REGISTER
+    @Transactional
     public void register(RegisterRequest request) {
 
         if (userRepository.existsByEmail(request.getEmail())) {
@@ -77,7 +81,6 @@ public class AuthService {
                 verificationCode
         );
     }
-
     // VERIFY EMAIL
     public void verifyEmail(
             VerifyEmailRequest request
@@ -122,7 +125,46 @@ public class AuthService {
         userRepository.save(user);
     }
 
-    // LOGIN
+
+    // RESEND VERIFICATION CODE
+    // RESEND VERIFICATION CODE
+    @Transactional
+    public void resendVerificationCode(
+            ResendVerificationRequest request
+    ) {
+
+        User user = userRepository
+                .findByEmail(request.getEmail())
+                .orElseThrow(() ->
+                        new RuntimeException(
+                                "User not found"
+                        )
+                );
+
+        if (user.isEmailVerified()) {
+            throw new RuntimeException(
+                    "Email already verified"
+            );
+        }
+
+        String verificationCode =
+                String.format(
+                        "%06d",
+                        new Random().nextInt(1_000_000)
+                );
+
+        user.setVerificationCode(verificationCode);
+        user.setVerificationCodeExpiry(
+                LocalDateTime.now().plusMinutes(10)
+        );
+
+        userRepository.save(user);
+
+        emailService.sendVerificationCode(
+                user.getEmail(),
+                verificationCode
+        );
+    }    // LOGIN
     public AuthResponse login(
             LoginRequest request
     ) {
