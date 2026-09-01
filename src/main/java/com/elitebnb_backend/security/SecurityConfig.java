@@ -209,6 +209,37 @@ public class SecurityConfig {
                                 .requestMatchers("/api/notifications/**")
                                 .authenticated()
 
+
+                                .requestMatchers(
+                                        HttpMethod.GET,
+                                        "/api/properties/*/reviews"
+                                ).permitAll()
+
+                                .requestMatchers(
+                                        HttpMethod.POST,
+                                        "/api/reviews"
+                                ).hasRole("USER")
+
+                                .requestMatchers(
+                                        HttpMethod.GET,
+                                        "/api/reviews/my"
+                                ).hasRole("USER")
+
+                                .requestMatchers(
+                                        HttpMethod.GET,
+                                        "/api/host/reviews"
+                                ).hasRole("HOST")
+
+                                .requestMatchers(
+                                        HttpMethod.PUT,
+                                        "/api/reviews/*/response"
+                                ).hasRole("HOST")
+
+                                .requestMatchers("/api/user/profile/**").hasRole("USER")
+
+                                .requestMatchers("/api/host/onboarding/**").hasRole("HOST")
+
+                                .requestMatchers("/api/payments/**").hasRole("USER")
                         // =========================
                         // EVERYTHING ELSE
                         // =========================

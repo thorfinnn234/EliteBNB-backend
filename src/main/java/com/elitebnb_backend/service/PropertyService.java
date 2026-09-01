@@ -83,10 +83,11 @@ public class PropertyService {
         return mapToResponse(savedProperty);
     }
 
-    // GET ALL PROPERTIES
+    // GET ALL PUBLIC ACTIVE PROPERTIES
     public List<PropertyResponse> getAllProperties() {
 
-        return propertyRepository.findAll()
+        return propertyRepository
+                .findByStatus(PropertyStatus.ACTIVE)
                 .stream()
                 .map(this::mapToResponse)
                 .toList();
@@ -548,6 +549,12 @@ public class PropertyService {
                 propertyImageRepository
                         .findByPropertyId(property.getId())
                         .stream()
+                        .sorted((image1, image2) ->
+                                Boolean.compare(
+                                        image2.isCoverImage(),
+                                        image1.isCoverImage()
+                                )
+                        )
                         .map(PropertyImage::getImageUrl)
                         .toList();
 

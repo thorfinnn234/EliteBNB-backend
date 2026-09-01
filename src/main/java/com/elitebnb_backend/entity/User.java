@@ -40,12 +40,43 @@ public class User {
     @Column(length = 1000)
     private String profileImageUrl;
 
+    // =========================
+    // HOST ONBOARDING
+    // =========================
+
     @Column(nullable = false)
+    @Builder.Default
+    private boolean hostOnboardingCompleted = false;
+
+    @Column(nullable = false)
+    @Builder.Default
+    private Integer hostOnboardingStep = 1;
+
+    private String address;
+
+    private String city;
+
+    private String state;
+
+    private String country;
+
+
+
+    // =========================
+    // EMAIL VERIFICATION
+    // =========================
+
+    @Column(nullable = false)
+    @Builder.Default
     private boolean emailVerified = false;
 
     private String verificationCode;
 
     private LocalDateTime verificationCodeExpiry;
+
+    // =========================
+    // ROLE
+    // =========================
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
