@@ -66,4 +66,6 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
             User host,
             BookingStatus status
     );
+
+    long countByStatus(BookingStatus status);
 }

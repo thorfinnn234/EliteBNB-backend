@@ -240,6 +240,8 @@ public class SecurityConfig {
                                 .requestMatchers("/api/host/onboarding/**").hasRole("HOST")
 
                                 .requestMatchers("/api/payments/**").hasRole("USER")
+
+                                .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         // =========================
                         // EVERYTHING ELSE
                         // =========================

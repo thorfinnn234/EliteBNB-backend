@@ -36,4 +36,6 @@ public interface PropertyRepository
             User host,
             PropertyStatus status
     );
+
+    long countByStatus(PropertyStatus status);
 }

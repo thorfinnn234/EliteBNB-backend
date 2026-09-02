@@ -1,20 +1,27 @@
 package com.elitebnb_backend.service;
 
-import com.resend.Resend;
-import com.resend.services.emails.model.SendEmailRequest;
-
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.*;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
+
+import java.util.List;
+import java.util.Map;
 
 @Service
 public class EmailService {
 
-    private final Resend resend;
+    private final String brevoApiKey;
+    private final String brevoApiUrl;
+    private final RestTemplate restTemplate;
 
     public EmailService(
-            @Value("${resend.api.key}") String apiKey
+            @Value("${brevo.api.key}") String brevoApiKey,
+            @Value("${brevo.api.url}") String brevoApiUrl
     ) {
-        this.resend = new Resend(apiKey);
+        this.brevoApiKey = brevoApiKey;
+        this.brevoApiUrl = brevoApiUrl;
+        this.restTemplate = new RestTemplate();
     }
 
     public void sendVerificationCode(
@@ -43,14 +50,43 @@ public class EmailService {
                 </div>
                 """.formatted(code);
 
-        SendEmailRequest request =
-                SendEmailRequest.builder()
-                        .from("EliteBNB <onboarding@resend.dev>")
-                        .to(email)
-                        .subject("Verify your EliteBNB account")
-                        .html(html)
-                        .build();
+        HttpHeaders headers = new HttpHeaders();
 
-        resend.emails().send(request);
+        headers.setContentType(
+                MediaType.APPLICATION_JSON
+        );
+
+        headers.set(
+                "api-key",
+                brevoApiKey
+        );
+
+        Map<String, Object> sender = Map.of(
+                "name", "EliteBNB",
+                "email", "habeeboreoluwa12@gmail.com"
+        );
+
+        Map<String, Object> recipient = Map.of(
+                "email", email
+        );
+
+        Map<String, Object> body = Map.of(
+                "sender", sender,
+                "to", List.of(recipient),
+                "subject", "Verify your EliteBNB account",
+                "htmlContent", html
+        );
+
+        HttpEntity<Map<String, Object>> request =
+                new HttpEntity<>(
+                        body,
+                        headers
+                );
+
+        restTemplate.postForEntity(
+                brevoApiUrl,
+                request,
+                String.class
+        );
     }
 }
