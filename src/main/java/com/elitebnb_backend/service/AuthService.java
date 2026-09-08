@@ -5,6 +5,7 @@ import com.elitebnb_backend.dto.LoginRequest;
 import com.elitebnb_backend.dto.RegisterRequest;
 import com.elitebnb_backend.dto.VerifyEmailRequest;
 import com.elitebnb_backend.dto.ResendVerificationRequest;
+import com.elitebnb_backend.entity.AccountStatus;
 import com.elitebnb_backend.entity.Role;
 import com.elitebnb_backend.entity.User;
 import com.elitebnb_backend.repository.UserRepository;
@@ -42,6 +43,9 @@ public class AuthService {
     @Transactional
     public void register(RegisterRequest request) {
 
+        Role selfRegistrationRole =
+                resolveSelfRegistrationRole(request.getRole());
+
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new RuntimeException("Email already exists");
         }
@@ -62,11 +66,7 @@ public class AuthService {
                         )
                 )
                 .phoneNumber(request.getPhoneNumber())
-                .role(
-                        request.getRole() != null
-                                ? request.getRole()
-                                : Role.USER
-                )
+                .role(selfRegistrationRole)
                 .emailVerified(false)
                 .verificationCode(verificationCode)
                 .verificationCodeExpiry(
@@ -186,6 +186,14 @@ public class AuthService {
             );
         }
 
+        if (user.getAccountStatus()
+                == AccountStatus.SUSPENDED) {
+
+            throw new RuntimeException(
+                    "Account is suspended"
+            );
+        }
+
         if (!user.isEmailVerified()) {
             throw new RuntimeException(
                     "Please verify your email before logging in"
@@ -201,5 +209,23 @@ public class AuthService {
                 user.getEmail(),
                 user.getRole()
         );
+    }
+
+    private Role resolveSelfRegistrationRole(
+            Role requestedRole
+    ) {
+
+        Role role =
+                requestedRole != null
+                        ? requestedRole
+                        : Role.USER;
+
+        if (role == Role.ADMIN) {
+            throw new RuntimeException(
+                    "Admin accounts cannot be created through public registration"
+            );
+        }
+
+        return role;
     }
 }

@@ -55,6 +55,27 @@ public class AdminUserService {
         return map(user);
     }
 
+    public AdminUserResponse getCurrentAdmin(
+            String adminEmail
+    ) {
+
+        User admin =
+                userRepository.findByEmail(adminEmail)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Admin account not found"
+                                )
+                        );
+
+        if (admin.getRole() != Role.ADMIN) {
+            throw new RuntimeException(
+                    "Admin account required"
+            );
+        }
+
+        return map(admin);
+    }
+
     // =========================
     // UPDATE ACCOUNT STATUS
     // =========================

@@ -33,6 +33,6 @@ public class PropertyImage {
     private Property property;
 
     public boolean isCover() {
-        return false;
+        return coverImage;
     }
 }
