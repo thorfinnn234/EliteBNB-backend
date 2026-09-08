@@ -1,6 +1,7 @@
 package com.elitebnb_backend.dto;
 
 import com.elitebnb_backend.entity.Amenity;
+import com.elitebnb_backend.entity.PropertyApprovalStatus;
 import com.elitebnb_backend.entity.PropertyStatus;
 import com.elitebnb_backend.entity.PropertyType;
 
@@ -34,6 +35,8 @@ public class PropertyResponse {
     private PropertyType propertyType;
 
     private PropertyStatus status;
+
+    private PropertyApprovalStatus approvalStatus;
 
     private Set<Amenity> amenities;
 

@@ -1,6 +1,7 @@
 package com.elitebnb_backend.specification;
 
 import com.elitebnb_backend.entity.Property;
+import com.elitebnb_backend.entity.PropertyApprovalStatus;
 import com.elitebnb_backend.entity.PropertyStatus;
 import com.elitebnb_backend.entity.PropertyType;
 
@@ -111,6 +112,19 @@ public class PropertySpecification {
                 criteriaBuilder.equal(
                         root.get("status"),
                         PropertyStatus.ACTIVE
+                );
+    }
+
+    public static Specification<Property> isApprovedOrLegacy() {
+        return (root, query, criteriaBuilder) ->
+                criteriaBuilder.or(
+                        criteriaBuilder.equal(
+                                root.get("approvalStatus"),
+                                PropertyApprovalStatus.APPROVED
+                        ),
+                        criteriaBuilder.isNull(
+                                root.get("approvalStatus")
+                        )
                 );
     }
 }

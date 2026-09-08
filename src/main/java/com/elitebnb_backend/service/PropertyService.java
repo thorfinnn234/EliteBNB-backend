@@ -6,8 +6,10 @@ import com.elitebnb_backend.dto.PropertyResponse;
 import com.elitebnb_backend.dto.UpdatePropertyRequest;
 
 import com.elitebnb_backend.entity.Property;
+import com.elitebnb_backend.entity.AdminNotificationType;
 import com.elitebnb_backend.entity.PropertyImage;
 import com.elitebnb_backend.entity.PropertyImageType;
+import com.elitebnb_backend.entity.PropertyApprovalStatus;
 import com.elitebnb_backend.entity.PropertyStatus;
 import com.elitebnb_backend.entity.PropertyType;
 import com.elitebnb_backend.entity.User;
@@ -34,21 +36,24 @@ public class PropertyService {
     private final PropertyRepository propertyRepository;
     private final UserRepository userRepository;
     private final PropertyImageRepository propertyImageRepository;
-        private final PropertyAvailabilityRepository propertyAvailabilityRepository;
+    private final PropertyAvailabilityRepository propertyAvailabilityRepository;
     private final CloudinaryService cloudinaryService;
+    private final AdminNotificationService adminNotificationService;
 
     public PropertyService(
             PropertyRepository propertyRepository,
             UserRepository userRepository,
             PropertyImageRepository propertyImageRepository,
             PropertyAvailabilityRepository propertyAvailabilityRepository,
-            CloudinaryService cloudinaryService
+            CloudinaryService cloudinaryService,
+            AdminNotificationService adminNotificationService
     ) {
         this.propertyRepository = propertyRepository;
         this.userRepository = userRepository;
         this.propertyImageRepository = propertyImageRepository;
         this.propertyAvailabilityRepository = propertyAvailabilityRepository;
         this.cloudinaryService = cloudinaryService;
+        this.adminNotificationService = adminNotificationService;
     }
 
     // CREATE PROPERTY
@@ -79,11 +84,25 @@ public class PropertyService {
                                 : new HashSet<>()
                 )
                 .status(PropertyStatus.ACTIVE)
+                .approvalStatus(PropertyApprovalStatus.PENDING_REVIEW)
                 .host(host)
                 .build();
 
         Property savedProperty =
                 propertyRepository.save(property);
+
+        adminNotificationService.notifyAdmins(
+                "Property approval request",
+                host.getFirstName()
+                        + " "
+                        + host.getLastName()
+                        + " submitted "
+                        + savedProperty.getTitle()
+                        + " for approval.",
+                AdminNotificationType.PROPERTY_APPROVAL_REQUEST,
+                savedProperty.getId(),
+                "PROPERTY"
+        );
 
         return mapToResponse(savedProperty);
     }
@@ -92,7 +111,7 @@ public class PropertyService {
     public List<PropertyResponse> getAllProperties() {
 
         return propertyRepository
-                .findByStatus(PropertyStatus.ACTIVE)
+                .findPublicVisibleProperties()
                 .stream()
                 .map(this::mapToResponse)
                 .toList();
@@ -111,6 +130,7 @@ public class PropertyService {
         Specification<Property> spec =
                 Specification
                         .where(PropertySpecification.isActive())
+                        .and(PropertySpecification.isApprovedOrLegacy())
                         .and(PropertySpecification.hasLocation(location))
                         .and(PropertySpecification.hasPropertyType(propertyType))
                         .and(PropertySpecification.hasMinimumPrice(minPrice))
@@ -135,6 +155,14 @@ public class PropertyService {
                                 "Property not found"
                         )
                 );
+
+        if (property.getStatus() != PropertyStatus.ACTIVE
+                || !isApprovedOrLegacy(property)) {
+
+            throw new RuntimeException(
+                    "Property not found"
+            );
+        }
 
         return mapToResponse(property);
     }
@@ -248,7 +276,7 @@ public class PropertyService {
     }
 
     // DELETE PROPERTY
-        @Transactional
+    @Transactional
     public void deleteProperty(
             Long id,
             Authentication authentication
@@ -576,6 +604,7 @@ public class PropertyService {
                 property.getMaxGuests(),
                 property.getPropertyType(),
                 property.getStatus(),
+                effectiveApprovalStatus(property),
                 property.getAmenities(),
                 imageUrls,
                 property.getHost().getId(),
@@ -585,5 +614,23 @@ public class PropertyService {
                 property.getCreatedAt(),
                 property.getUpdatedAt()
         );
+    }
+
+    private boolean isApprovedOrLegacy(
+            Property property
+    ) {
+
+        return property.getApprovalStatus() == null
+                || property.getApprovalStatus()
+                == PropertyApprovalStatus.APPROVED;
+    }
+
+    private PropertyApprovalStatus effectiveApprovalStatus(
+            Property property
+    ) {
+
+        return property.getApprovalStatus() != null
+                ? property.getApprovalStatus()
+                : PropertyApprovalStatus.APPROVED;
     }
 }

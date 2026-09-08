@@ -31,4 +31,8 @@ public class PropertyImage {
     @JoinColumn(name = "property_id", nullable = false)
     @JsonIgnore
     private Property property;
+
+    public boolean isCover() {
+        return false;
+    }
 }

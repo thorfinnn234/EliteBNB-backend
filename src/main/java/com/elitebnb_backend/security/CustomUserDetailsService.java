@@ -1,7 +1,9 @@
 package com.elitebnb_backend.security;
 
+import com.elitebnb_backend.entity.AccountStatus;
 import com.elitebnb_backend.entity.User;
 import com.elitebnb_backend.repository.UserRepository;
+
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -12,7 +14,9 @@ public class CustomUserDetailsService implements UserDetailsService {
 
     private final UserRepository userRepository;
 
-    public CustomUserDetailsService(UserRepository userRepository) {
+    public CustomUserDetailsService(
+            UserRepository userRepository
+    ) {
         this.userRepository = userRepository;
     }
 
@@ -22,13 +26,20 @@ public class CustomUserDetailsService implements UserDetailsService {
 
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() ->
-                        new UsernameNotFoundException("User not found")
+                        new UsernameNotFoundException(
+                                "User not found"
+                        )
                 );
+
+        boolean isActive =
+                user.getAccountStatus()
+                        == AccountStatus.ACTIVE;
 
         return org.springframework.security.core.userdetails.User
                 .withUsername(user.getEmail())
                 .password(user.getPassword())
                 .roles(user.getRole().name())
+                .disabled(!isActive)
                 .build();
     }
 }
