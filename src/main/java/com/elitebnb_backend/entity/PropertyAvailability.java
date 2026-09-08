@@ -1,5 +1,6 @@
 package com.elitebnb_backend.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -21,6 +22,7 @@ public class PropertyAvailability {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "property_id", nullable = false)
+    @JsonIgnore
     private Property property;
 
     @Column(nullable = false)

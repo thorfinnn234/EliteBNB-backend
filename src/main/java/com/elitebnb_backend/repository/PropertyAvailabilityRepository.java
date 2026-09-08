@@ -13,6 +13,8 @@ public interface PropertyAvailabilityRepository
 
     List<PropertyAvailability> findByPropertyId(Long propertyId);
 
+        void deleteByPropertyId(Long propertyId);
+
     @Query("""
             SELECT COUNT(a) > 0
             FROM PropertyAvailability a

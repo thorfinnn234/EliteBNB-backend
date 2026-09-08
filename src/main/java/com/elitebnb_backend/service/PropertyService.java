@@ -13,6 +13,7 @@ import com.elitebnb_backend.entity.PropertyType;
 import com.elitebnb_backend.entity.User;
 
 import com.elitebnb_backend.repository.PropertyImageRepository;
+import com.elitebnb_backend.repository.PropertyAvailabilityRepository;
 import com.elitebnb_backend.repository.PropertyRepository;
 import com.elitebnb_backend.repository.UserRepository;
 
@@ -21,6 +22,7 @@ import com.elitebnb_backend.specification.PropertySpecification;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.HashSet;
@@ -32,17 +34,20 @@ public class PropertyService {
     private final PropertyRepository propertyRepository;
     private final UserRepository userRepository;
     private final PropertyImageRepository propertyImageRepository;
+        private final PropertyAvailabilityRepository propertyAvailabilityRepository;
     private final CloudinaryService cloudinaryService;
 
     public PropertyService(
             PropertyRepository propertyRepository,
             UserRepository userRepository,
             PropertyImageRepository propertyImageRepository,
+            PropertyAvailabilityRepository propertyAvailabilityRepository,
             CloudinaryService cloudinaryService
     ) {
         this.propertyRepository = propertyRepository;
         this.userRepository = userRepository;
         this.propertyImageRepository = propertyImageRepository;
+        this.propertyAvailabilityRepository = propertyAvailabilityRepository;
         this.cloudinaryService = cloudinaryService;
     }
 
@@ -243,6 +248,7 @@ public class PropertyService {
     }
 
     // DELETE PROPERTY
+        @Transactional
     public void deleteProperty(
             Long id,
             Authentication authentication
@@ -267,6 +273,7 @@ public class PropertyService {
             );
         }
 
+        propertyAvailabilityRepository.deleteByPropertyId(id);
         propertyRepository.delete(property);
     }
 
