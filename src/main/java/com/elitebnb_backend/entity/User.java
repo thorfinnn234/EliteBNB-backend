@@ -41,6 +41,15 @@ public class User {
     private String profileImageUrl;
 
     // =========================
+    // ACCOUNT STATUS
+    // =========================
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    @Builder.Default
+    private AccountStatus accountStatus = AccountStatus.ACTIVE;
+
+    // =========================
     // HOST ONBOARDING
     // =========================
 
@@ -60,8 +69,6 @@ public class User {
 
     private String country;
 
-
-
     // =========================
     // EMAIL VERIFICATION
     // =========================
@@ -73,6 +80,10 @@ public class User {
     private String verificationCode;
 
     private LocalDateTime verificationCodeExpiry;
+
+    @Column(updatable = false)
+    @Builder.Default
+    private LocalDateTime createdAt = LocalDateTime.now();
 
     // =========================
     // ROLE

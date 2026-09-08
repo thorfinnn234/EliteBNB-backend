@@ -10,6 +10,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 public interface BookingRepository extends JpaRepository<Booking, Long> {
@@ -68,4 +69,48 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     );
 
     long countByStatus(BookingStatus status);
+
+    @Query("""
+            SELECT b
+            FROM Booking b
+            WHERE (
+                :search IS NULL
+                OR :search = ''
+                OR LOWER(b.property.title) LIKE LOWER(CONCAT('%', :search, '%'))
+                OR LOWER(b.property.location) LIKE LOWER(CONCAT('%', :search, '%'))
+                OR LOWER(b.property.host.firstName) LIKE LOWER(CONCAT('%', :search, '%'))
+                OR LOWER(b.property.host.lastName) LIKE LOWER(CONCAT('%', :search, '%'))
+                OR LOWER(b.property.host.email) LIKE LOWER(CONCAT('%', :search, '%'))
+                OR LOWER(b.guest.firstName) LIKE LOWER(CONCAT('%', :search, '%'))
+                OR LOWER(b.guest.lastName) LIKE LOWER(CONCAT('%', :search, '%'))
+                OR LOWER(b.guest.email) LIKE LOWER(CONCAT('%', :search, '%'))
+            )
+            AND (:status IS NULL OR b.status = :status)
+            AND (:propertyId IS NULL OR b.property.id = :propertyId)
+            AND (:guestId IS NULL OR b.guest.id = :guestId)
+            AND (:hostId IS NULL OR b.property.host.id = :hostId)
+            AND (:from IS NULL OR b.checkOut >= :from)
+            AND (:to IS NULL OR b.checkIn <= :to)
+            ORDER BY b.id DESC
+            """)
+    List<Booking> searchAdminBookings(
+            @Param("search") String search,
+            @Param("status") BookingStatus status,
+            @Param("propertyId") Long propertyId,
+            @Param("guestId") Long guestId,
+            @Param("hostId") Long hostId,
+            @Param("from") LocalDate from,
+            @Param("to") LocalDate to
+    );
+
+    @Query("""
+            SELECT FUNCTION('to_char', b.createdAt, 'YYYY-MM'), COUNT(b)
+            FROM Booking b
+            WHERE b.createdAt >= :start
+            GROUP BY FUNCTION('to_char', b.createdAt, 'YYYY-MM')
+            ORDER BY FUNCTION('to_char', b.createdAt, 'YYYY-MM')
+            """)
+    List<Object[]> countBookingsByMonth(
+            @Param("start") LocalDateTime start
+    );
 }

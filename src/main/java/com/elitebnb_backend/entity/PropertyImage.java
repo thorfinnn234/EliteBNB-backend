@@ -29,4 +29,8 @@ public class PropertyImage {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "property_id", nullable = false)
     private Property property;
+
+    public boolean isCover() {
+        return false;
+    }
 }

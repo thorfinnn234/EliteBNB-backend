@@ -5,6 +5,7 @@ import com.elitebnb_backend.dto.HostReviewResponseRequest;
 import com.elitebnb_backend.dto.ReviewResponse;
 import com.elitebnb_backend.entity.*;
 import com.elitebnb_backend.repository.BookingRepository;
+import com.elitebnb_backend.repository.PropertyRepository;
 import com.elitebnb_backend.repository.ReviewRepository;
 import com.elitebnb_backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -20,6 +21,7 @@ public class ReviewService {
     private final ReviewRepository reviewRepository;
     private final BookingRepository bookingRepository;
     private final UserRepository userRepository;
+    private final PropertyRepository propertyRepository;
 
     public ReviewResponse createReview(
             CreateReviewRequest request,
@@ -85,7 +87,10 @@ public class ReviewService {
         User user = getUser(userEmail);
 
         return reviewRepository
-                .findByGuestOrderByCreatedAtDesc(user)
+                .findByGuestAndStatusOrderByCreatedAtDesc(
+                        user,
+                        ReviewStatus.VISIBLE
+                )
                 .stream()
                 .map(this::mapToResponse)
                 .toList();
@@ -94,20 +99,18 @@ public class ReviewService {
     public List<ReviewResponse> getPropertyReviews(
             Long propertyId
     ) {
-        return reviewRepository.findAll()
+        Property property = propertyRepository
+                .findById(propertyId)
+                .orElseThrow(() ->
+                        new RuntimeException("Property not found")
+                );
+
+        return reviewRepository
+                .findByPropertyAndStatusOrderByCreatedAtDesc(
+                        property,
+                        ReviewStatus.VISIBLE
+                )
                 .stream()
-                .filter(review ->
-                        review.getProperty()
-                                .getId()
-                                .equals(propertyId)
-                )
-                .sorted(
-                        (a, b) ->
-                                b.getCreatedAt()
-                                        .compareTo(
-                                                a.getCreatedAt()
-                                        )
-                )
                 .map(this::mapToResponse)
                 .toList();
     }
@@ -118,7 +121,10 @@ public class ReviewService {
         User host = getUser(userEmail);
 
         return reviewRepository
-                .findByPropertyHostOrderByCreatedAtDesc(host)
+                .findByPropertyHostAndStatusOrderByCreatedAtDesc(
+                        host,
+                        ReviewStatus.VISIBLE
+                )
                 .stream()
                 .map(this::mapToResponse)
                 .toList();

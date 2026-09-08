@@ -51,6 +51,20 @@ public class Property {
     @Builder.Default
     private PropertyStatus status = PropertyStatus.ACTIVE;
 
+    @Enumerated(EnumType.STRING)
+    @Builder.Default
+    private PropertyApprovalStatus approvalStatus =
+            PropertyApprovalStatus.APPROVED;
+
+    @Column(length = 2000)
+    private String approvalNote;
+
+    private LocalDateTime approvalReviewedAt;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "approval_reviewed_by")
+    private User approvalReviewedBy;
+
     @ManyToOne
     @JoinColumn(name = "host_id", nullable = false)
     private User host;

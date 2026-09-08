@@ -35,6 +35,11 @@ public class Review {
     @Column(length = 1500)
     private String hostResponse;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    @Builder.Default
+    private ReviewStatus status = ReviewStatus.VISIBLE;
+
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "guest_id", nullable = false)
     private User guest;
