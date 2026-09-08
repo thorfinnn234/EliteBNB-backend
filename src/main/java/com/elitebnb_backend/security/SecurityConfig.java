@@ -138,6 +138,14 @@ public class SecurityConfig {
                         )
                         .hasRole("USER")
 
+                        // USER - CANCEL OWN PENDING RESERVATION
+                        // The service still validates ownership and PENDING-only status.
+                        .requestMatchers(
+                                HttpMethod.PATCH,
+                                "/api/bookings/*/cancel"
+                        )
+                        .hasRole("USER")
+
                         // HOST - VIEW RESERVATIONS
                         .requestMatchers(
                                 HttpMethod.GET,

@@ -212,6 +212,66 @@ public class BookingService {
                 .toList();
     }
 
+    // USER: CANCEL OWN PENDING BOOKING
+    public BookingResponse cancelPendingBooking(
+            Long bookingId,
+            Authentication authentication
+    ) {
+
+        Booking booking = bookingRepository
+                .findById(bookingId)
+                .orElseThrow(() ->
+                        new RuntimeException("Booking not found")
+                );
+
+        String email = authentication.getName();
+
+        User guest = userRepository.findByEmail(email)
+                .orElseThrow(() ->
+                        new RuntimeException("User not found")
+                );
+
+        // Ownership is checked before status changes so a USER can only cancel
+        // reservations that were returned by their own authenticated account.
+        if (!booking.getGuest()
+                .getId()
+                .equals(guest.getId())) {
+
+            throw new RuntimeException(
+                    "You are not allowed to cancel this booking"
+            );
+        }
+
+        // Bookings are cancelled instead of deleted so reservation history,
+        // payment context, reviews, and host records remain auditable.
+        if (booking.getStatus() != BookingStatus.PENDING) {
+            throw new RuntimeException(
+                    "Only pending reservations can be cancelled"
+            );
+        }
+
+        booking.setStatus(BookingStatus.CANCELLED);
+
+        Booking updatedBooking =
+                bookingRepository.save(booking);
+
+        notificationService.createNotification(
+                booking.getProperty().getHost(),
+                "Reservation request cancelled",
+                guest.getFirstName()
+                        + " "
+                        + guest.getLastName()
+                        + " cancelled their pending reservation request for "
+                        + booking.getProperty().getTitle()
+                        + ".",
+                NotificationType.BOOKING_CANCELLED,
+                updatedBooking,
+                booking.getProperty()
+        );
+
+        return mapToResponse(updatedBooking);
+    }
+
     // HOST: GET RESERVATIONS
     public List<BookingResponse> getHostBookings(
             Authentication authentication

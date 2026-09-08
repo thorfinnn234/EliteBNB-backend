@@ -51,6 +51,21 @@ public class BookingController {
         );
     }
 
+    // USER: CANCEL OWN PENDING BOOKING
+    @PatchMapping("/{bookingId}/cancel")
+    public ResponseEntity<BookingResponse> cancelPendingBooking(
+            @PathVariable Long bookingId,
+            Authentication authentication
+    ) {
+
+        return ResponseEntity.ok(
+                bookingService.cancelPendingBooking(
+                        bookingId,
+                        authentication
+                )
+        );
+    }
+
     // HOST: GET BOOKINGS FOR MY PROPERTIES
     @GetMapping("/host")
     public ResponseEntity<List<BookingResponse>> getHostBookings(
