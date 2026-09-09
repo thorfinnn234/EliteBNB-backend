@@ -76,6 +76,7 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
             WHERE (
                 :search IS NULL
                 OR :search = ''
+                OR (:bookingIdSearch IS NOT NULL AND b.id = :bookingIdSearch)
                 OR LOWER(b.property.title) LIKE LOWER(CONCAT('%', :search, '%'))
                 OR LOWER(b.property.location) LIKE LOWER(CONCAT('%', :search, '%'))
                 OR LOWER(b.property.host.firstName) LIKE LOWER(CONCAT('%', :search, '%'))
@@ -95,6 +96,7 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
             """)
     List<Booking> searchAdminBookings(
             @Param("search") String search,
+            @Param("bookingIdSearch") Long bookingIdSearch,
             @Param("status") BookingStatus status,
             @Param("propertyId") Long propertyId,
             @Param("guestId") Long guestId,

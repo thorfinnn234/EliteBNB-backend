@@ -15,6 +15,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.util.Locale;
 import java.util.List;
 import java.util.Optional;
 
@@ -46,9 +47,16 @@ public class AdminBookingService {
             );
         }
 
+        String normalizedSearch =
+                normalizeSearch(search);
+
+        Long bookingIdSearch =
+                parseBookingIdSearch(normalizedSearch);
+
         return bookingRepository
                 .searchAdminBookings(
-                        search,
+                        normalizedSearch,
+                        bookingIdSearch,
                         status,
                         propertyId,
                         guestId,
@@ -127,6 +135,91 @@ public class AdminBookingService {
                                 "Booking not found"
                         )
                 );
+    }
+
+    /**
+     * Trims Admin search input before repository filtering.
+     * Blank text becomes null so date/status/user/property filters can operate
+     * without a no-op string condition.
+     */
+    private String normalizeSearch(
+            String search
+    ) {
+
+        if (search == null) {
+            return null;
+        }
+
+        String trimmedSearch =
+                search.trim();
+
+        if (trimmedSearch.isEmpty()) {
+            return null;
+        }
+
+        return trimmedSearch;
+    }
+
+    /**
+     * Extracts a numeric booking id from the display references Admins see.
+     * This keeps the persisted model unchanged while supporting searches like
+     * "3", "#3", "Booking #3", and "booking 3".
+     */
+    private Long parseBookingIdSearch(
+            String search
+    ) {
+
+        if (search == null) {
+            return null;
+        }
+
+        String candidate =
+                search.toLowerCase(Locale.ROOT);
+
+        if (candidate.startsWith("booking")) {
+            candidate =
+                    candidate.substring("booking".length())
+                            .trim();
+        }
+
+        if (candidate.startsWith("#")) {
+            candidate =
+                    candidate.substring(1)
+                            .trim();
+        }
+
+        if (!containsOnlyDigits(candidate)) {
+            return null;
+        }
+
+        try {
+            return Long.valueOf(candidate);
+        } catch (NumberFormatException ignored) {
+            return null;
+        }
+    }
+
+    /**
+     * Checks strict numeric text before converting to Long.
+     * Keeping this narrow prevents ordinary property or guest text from being
+     * accidentally interpreted as a booking reference.
+     */
+    private boolean containsOnlyDigits(
+            String value
+    ) {
+
+        if (value == null
+                || value.isEmpty()) {
+            return false;
+        }
+
+        for (int index = 0; index < value.length(); index++) {
+            if (!Character.isDigit(value.charAt(index))) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private void notifyGuestWhenStatusChanged(
