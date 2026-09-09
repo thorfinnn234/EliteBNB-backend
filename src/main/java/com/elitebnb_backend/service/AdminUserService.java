@@ -31,9 +31,12 @@ public class AdminUserService {
             AccountStatus status
     ) {
 
+        String normalizedSearch =
+                normalizeSearch(search);
+
         return userRepository
                 .searchAdminUsers(
-                        search,
+                        normalizedSearch,
                         role,
                         status
                 )
@@ -154,6 +157,28 @@ public class AdminUserService {
                                 "User not found"
                         )
                 );
+    }
+
+    /**
+     * Trims browser-supplied search text before it reaches the repository.
+     * Blank text becomes null so role/status filters still work on their own.
+     */
+    private String normalizeSearch(
+            String search
+    ) {
+
+        if (search == null) {
+            return null;
+        }
+
+        String trimmedSearch =
+                search.trim();
+
+        if (trimmedSearch.isEmpty()) {
+            return null;
+        }
+
+        return trimmedSearch;
     }
 
     private AdminUserResponse map(

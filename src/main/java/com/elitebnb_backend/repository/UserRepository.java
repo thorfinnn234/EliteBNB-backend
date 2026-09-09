@@ -35,6 +35,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
                 OR LOWER(u.firstName) LIKE LOWER(CONCAT('%', :search, '%'))
                 OR LOWER(u.lastName) LIKE LOWER(CONCAT('%', :search, '%'))
                 OR LOWER(u.email) LIKE LOWER(CONCAT('%', :search, '%'))
+                OR LOWER(CONCAT(CONCAT(u.firstName, ' '), u.lastName)) LIKE LOWER(CONCAT('%', :search, '%'))
             )
             ORDER BY u.id DESC
             """)
