@@ -42,6 +42,9 @@ public class AdminPaymentService {
             LocalDate to
     ) {
 
+        String normalizedSearch =
+                normalizeSearch(search);
+
         if (from != null
                 && to != null
                 && to.isBefore(from)) {
@@ -63,7 +66,7 @@ public class AdminPaymentService {
 
         return paymentRepository
                 .searchAdminPayments(
-                        search,
+                        normalizedSearch,
                         status,
                         provider,
                         bookingId,
@@ -74,6 +77,27 @@ public class AdminPaymentService {
                 .stream()
                 .map(this::map)
                 .toList();
+    }
+
+    /**
+     * Trims Admin payment search once before it reaches the repository query.
+     * Returning null for blank input keeps the existing "no search filter"
+     * behavior while allowing multi-word full-name searches to match cleanly.
+     */
+    private String normalizeSearch(
+            String search
+    ) {
+
+        if (search == null) {
+            return null;
+        }
+
+        String trimmedSearch =
+                search.trim();
+
+        return trimmedSearch.isEmpty()
+                ? null
+                : trimmedSearch;
     }
 
     public AdminPaymentResponse getPayment(
