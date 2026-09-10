@@ -249,6 +249,11 @@ public class SecurityConfig {
 
                                 .requestMatchers("/api/host/verification/**").hasRole("HOST")
 
+                                .requestMatchers(
+                                        "/api/host/support-conversation",
+                                        "/api/host/support-conversation/**"
+                                ).hasRole("HOST")
+
                                 .requestMatchers("/api/payments/**").hasRole("USER")
 
                                 .requestMatchers("/api/refunds/**").hasRole("USER")
