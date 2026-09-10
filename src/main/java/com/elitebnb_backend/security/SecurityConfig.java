@@ -45,6 +45,16 @@ public class SecurityConfig {
                         .permitAll()
 
 
+                                // =========================
+// MONITORING / ACTUATOR
+// =========================
+                                .requestMatchers(
+                                        "/actuator/health",
+                                        "/actuator/info",
+                                        "/actuator/prometheus"
+                                )
+                                .permitAll()
+
                         // =========================
                         // PROPERTY - HOST
                         // =========================
