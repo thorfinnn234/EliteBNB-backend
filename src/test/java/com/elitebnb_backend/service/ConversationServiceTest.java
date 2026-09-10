@@ -25,6 +25,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -40,6 +41,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -70,6 +72,9 @@ class ConversationServiceTest {
     @Mock
     private NotificationService notificationService;
 
+    @Mock
+    private HostAccessService hostAccessService;
+
     private ConversationService conversationService;
     private User guest;
     private User otherGuest;
@@ -93,7 +98,8 @@ class ConversationServiceTest {
                         propertyRepository,
                         bookingRepository,
                         propertyImageRepository,
-                        notificationService
+                        notificationService,
+                        hostAccessService
                 );
 
         guest = user(1L, "guest@example.com", "Jane", "Guest", Role.USER);
@@ -186,6 +192,43 @@ class ConversationServiceTest {
         assertThat(savedConversation.getProperty()).isSameAs(property);
         assertThat(response.getGuestId()).isEqualTo(guest.getId());
         assertThat(response.getHostId()).isEqualTo(host.getId());
+    }
+
+    /**
+     * Normal guest-to-Host messaging is a Host business surface. Guests can
+     * only start that conversation after the property's real Host has been
+     * verified, and the backend checks the derived Host before any thread is
+     * reused or created.
+     */
+    @Test
+    void userCannotStartConversationWithUnverifiedHost() {
+        when(propertyRepository.findById(property.getId()))
+                .thenReturn(Optional.of(property));
+        doThrow(businessAccessDenied())
+                .when(hostAccessService)
+                .requireVerifiedBusinessAccess(host);
+
+        assertThatThrownBy(() ->
+                conversationService.createConversation(
+                        createConversationRequest(
+                                property.getId(),
+                                null
+                        ),
+                        authenticationFor(guest)
+                )
+        ).isInstanceOf(AccessDeniedException.class)
+                .hasMessage(
+                        "Host verification is required before using Host business features"
+                );
+
+        verify(conversationRepository, never())
+                .findByGuestAndHostAndProperty(
+                        any(User.class),
+                        any(User.class),
+                        any(Property.class)
+                );
+        verify(conversationRepository, never())
+                .save(any(Conversation.class));
     }
 
     /**
@@ -338,6 +381,82 @@ class ConversationServiceTest {
                 .hasMessage(
                         "You are not allowed to access this conversation"
                 );
+    }
+
+    /**
+     * Once the central Host access guard allows the Host, the normal inbox
+     * query still works. This protects the existing USER<->HOST messaging
+     * contract for verified Hosts.
+     */
+    @Test
+    void verifiedHostPreservesConversationAccess() {
+        Conversation conversation =
+                conversation(700L, guest, host, property, null);
+
+        when(conversationRepository.findByHostOrderByUpdatedAtDesc(host))
+                .thenReturn(List.of(conversation));
+
+        List<ConversationResponse> responses =
+                conversationService.getMyConversations(
+                        authenticationFor(host)
+                );
+
+        assertThat(responses)
+                .extracting(ConversationResponse::getId)
+                .containsExactly(conversation.getId());
+        verify(hostAccessService)
+                .requireVerifiedBusinessAccess(host);
+    }
+
+    /**
+     * Unverified Hosts can continue the verification journey elsewhere, but
+     * they cannot use the normal guest-to-Host inbox until Admin verification
+     * succeeds.
+     */
+    @Test
+    void unverifiedHostCannotListBusinessConversations() {
+        doThrow(businessAccessDenied())
+                .when(hostAccessService)
+                .requireVerifiedBusinessAccess(host);
+
+        assertThatThrownBy(() ->
+                conversationService.getMyConversations(
+                        authenticationFor(host)
+                )
+        ).isInstanceOf(AccessDeniedException.class)
+                .hasMessage(
+                        "Host verification is required before using Host business features"
+                );
+
+        verify(conversationRepository, never())
+                .findByHostOrderByUpdatedAtDesc(any(User.class));
+    }
+
+    /**
+     * Sender identity still comes from authentication, and an unverified Host
+     * is denied before the service even loads a conversation by id.
+     */
+    @Test
+    void unverifiedHostCannotSendBusinessConversationMessage() {
+        doThrow(businessAccessDenied())
+                .when(hostAccessService)
+                .requireVerifiedBusinessAccess(host);
+
+        assertThatThrownBy(() ->
+                conversationService.sendMessage(
+                        700L,
+                        sendMessageRequest("Hello guest"),
+                        authenticationFor(host)
+                )
+        ).isInstanceOf(AccessDeniedException.class)
+                .hasMessage(
+                        "Host verification is required before using Host business features"
+                );
+
+        verify(conversationRepository, never())
+                .findById(any(Long.class));
+        verify(messageRepository, never())
+                .save(any(Message.class));
     }
 
     /**
@@ -670,5 +789,15 @@ class ConversationServiceTest {
                 .read(read)
                 .createdAt(LocalDateTime.now().plusSeconds(id))
                 .build();
+    }
+
+    /**
+     * Reuses the same 403-style exception that HostAccessService raises for
+     * authenticated Hosts who are not yet verified for business operations.
+     */
+    private AccessDeniedException businessAccessDenied() {
+        return new AccessDeniedException(
+                "Host verification is required before using Host business features"
+        );
     }
 }

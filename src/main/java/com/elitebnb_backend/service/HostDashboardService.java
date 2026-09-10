@@ -6,7 +6,6 @@ import com.elitebnb_backend.entity.PropertyStatus;
 import com.elitebnb_backend.entity.User;
 import com.elitebnb_backend.repository.BookingRepository;
 import com.elitebnb_backend.repository.PropertyRepository;
-import com.elitebnb_backend.repository.UserRepository;
 
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
@@ -16,28 +15,25 @@ public class HostDashboardService {
 
     private final BookingRepository bookingRepository;
     private final PropertyRepository propertyRepository;
-    private final UserRepository userRepository;
+    private final HostAccessService hostAccessService;
 
     public HostDashboardService(
             BookingRepository bookingRepository,
             PropertyRepository propertyRepository,
-            UserRepository userRepository
+            HostAccessService hostAccessService
     ) {
         this.bookingRepository = bookingRepository;
         this.propertyRepository = propertyRepository;
-        this.userRepository = userRepository;
+        this.hostAccessService = hostAccessService;
     }
 
     public HostDashboardResponse getDashboard(
             Authentication authentication
     ) {
 
-        String email = authentication.getName();
-
-        User host = userRepository
-                .findByEmail(email)
-                .orElseThrow(() ->
-                        new RuntimeException("Host not found")
+        User host =
+                hostAccessService.getVerifiedHost(
+                        authentication
                 );
 
         long totalListings =

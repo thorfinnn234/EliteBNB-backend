@@ -22,6 +22,7 @@ public class ReviewService {
     private final BookingRepository bookingRepository;
     private final UserRepository userRepository;
     private final PropertyRepository propertyRepository;
+    private final HostAccessService hostAccessService;
 
     public ReviewResponse createReview(
             CreateReviewRequest request,
@@ -118,7 +119,10 @@ public class ReviewService {
     public List<ReviewResponse> getHostReviews(
             String userEmail
     ) {
-        User host = getUser(userEmail);
+        User host =
+                hostAccessService.requireVerifiedBusinessAccess(
+                        userEmail
+                );
 
         return reviewRepository
                 .findByPropertyHostAndStatusOrderByCreatedAtDesc(
@@ -151,6 +155,8 @@ public class ReviewService {
                     "You can only respond to reviews on your own properties"
             );
         }
+
+        hostAccessService.requireVerifiedBusinessAccess(host);
 
         if (request.getResponse() == null ||
                 request.getResponse().trim().isEmpty()) {

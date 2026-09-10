@@ -17,7 +17,6 @@ import com.elitebnb_backend.entity.User;
 import com.elitebnb_backend.repository.PropertyImageRepository;
 import com.elitebnb_backend.repository.PropertyAvailabilityRepository;
 import com.elitebnb_backend.repository.PropertyRepository;
-import com.elitebnb_backend.repository.UserRepository;
 
 import com.elitebnb_backend.specification.PropertySpecification;
 
@@ -34,24 +33,24 @@ import java.util.List;
 public class PropertyService {
 
     private final PropertyRepository propertyRepository;
-    private final UserRepository userRepository;
     private final PropertyImageRepository propertyImageRepository;
     private final PropertyAvailabilityRepository propertyAvailabilityRepository;
+    private final HostAccessService hostAccessService;
     private final CloudinaryService cloudinaryService;
     private final AdminNotificationService adminNotificationService;
 
     public PropertyService(
             PropertyRepository propertyRepository,
-            UserRepository userRepository,
             PropertyImageRepository propertyImageRepository,
             PropertyAvailabilityRepository propertyAvailabilityRepository,
+            HostAccessService hostAccessService,
             CloudinaryService cloudinaryService,
             AdminNotificationService adminNotificationService
     ) {
         this.propertyRepository = propertyRepository;
-        this.userRepository = userRepository;
         this.propertyImageRepository = propertyImageRepository;
         this.propertyAvailabilityRepository = propertyAvailabilityRepository;
+        this.hostAccessService = hostAccessService;
         this.cloudinaryService = cloudinaryService;
         this.adminNotificationService = adminNotificationService;
     }
@@ -62,11 +61,9 @@ public class PropertyService {
             Authentication authentication
     ) {
 
-        String email = authentication.getName();
-
-        User host = userRepository.findByEmail(email)
-                .orElseThrow(() ->
-                        new RuntimeException("Host not found")
+        User host =
+                hostAccessService.getVerifiedHost(
+                        authentication
                 );
 
         Property property = Property.builder()
@@ -172,11 +169,9 @@ public class PropertyService {
             Authentication authentication
     ) {
 
-        String email = authentication.getName();
-
-        User host = userRepository.findByEmail(email)
-                .orElseThrow(() ->
-                        new RuntimeException("Host not found")
+        User host =
+                hostAccessService.getVerifiedHost(
+                        authentication
                 );
 
         return propertyRepository.findByHost(host)
@@ -210,6 +205,8 @@ public class PropertyService {
                     "You are not allowed to update this property"
             );
         }
+
+        hostAccessService.requireVerifiedBusinessAccess(email);
 
         if (request.getTitle() != null) {
             property.setTitle(request.getTitle());
@@ -301,6 +298,8 @@ public class PropertyService {
             );
         }
 
+        hostAccessService.requireVerifiedBusinessAccess(email);
+
         propertyAvailabilityRepository.deleteByPropertyId(id);
         propertyRepository.delete(property);
     }
@@ -330,6 +329,8 @@ public class PropertyService {
                     "You are not allowed to add images to this property"
             );
         }
+
+        hostAccessService.requireVerifiedBusinessAccess(email);
 
         if (request.isCoverImage()) {
 
@@ -384,6 +385,8 @@ public class PropertyService {
                     "You are not allowed to upload images to this property"
             );
         }
+
+        hostAccessService.requireVerifiedBusinessAccess(email);
 
         if (file == null || file.isEmpty()) {
             throw new RuntimeException(
@@ -461,6 +464,8 @@ public class PropertyService {
                     "You are not allowed to manage images for this property"
             );
         }
+
+        hostAccessService.requireVerifiedBusinessAccess(email);
 
         PropertyImage image = propertyImageRepository
                 .findById(imageId)
@@ -542,6 +547,8 @@ public class PropertyService {
                     "You are not allowed to manage images for this property"
             );
         }
+
+        hostAccessService.requireVerifiedBusinessAccess(email);
 
         PropertyImage selectedImage =
                 propertyImageRepository

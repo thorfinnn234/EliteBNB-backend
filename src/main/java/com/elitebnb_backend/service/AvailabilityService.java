@@ -19,15 +19,18 @@ public class AvailabilityService {
     private final PropertyAvailabilityRepository availabilityRepository;
     private final PropertyRepository propertyRepository;
     private final UserRepository userRepository;
+    private final HostAccessService hostAccessService;
 
     public AvailabilityService(
             PropertyAvailabilityRepository availabilityRepository,
             PropertyRepository propertyRepository,
-            UserRepository userRepository
+            UserRepository userRepository,
+            HostAccessService hostAccessService
     ) {
         this.availabilityRepository = availabilityRepository;
         this.propertyRepository = propertyRepository;
         this.userRepository = userRepository;
+        this.hostAccessService = hostAccessService;
     }
 
     public PropertyAvailability blockDates(
@@ -48,6 +51,8 @@ public class AvailabilityService {
                     "You cannot manage availability for this property"
             );
         }
+
+        hostAccessService.requireVerifiedBusinessAccess(host);
 
         if (request.getStartDate() == null || request.getEndDate() == null) {
             throw new RuntimeException("Start date and end date are required");
@@ -124,6 +129,8 @@ public class AvailabilityService {
                     "You cannot manage availability for this property"
             );
         }
+
+        hostAccessService.requireVerifiedBusinessAccess(host);
 
         availabilityRepository.delete(block);
     }

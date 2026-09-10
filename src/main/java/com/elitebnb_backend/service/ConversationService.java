@@ -41,6 +41,7 @@ public class ConversationService {
     private final BookingRepository bookingRepository;
     private final PropertyImageRepository propertyImageRepository;
     private final NotificationService notificationService;
+    private final HostAccessService hostAccessService;
 
     /**
      * Starts or reuses the single conversation for an authenticated guest and a
@@ -85,6 +86,8 @@ public class ConversationService {
                     "You cannot start a conversation with yourself"
             );
         }
+
+        hostAccessService.requireVerifiedBusinessAccess(host);
 
         Booking booking = resolveBookingContext(
                 request,
@@ -274,8 +277,9 @@ public class ConversationService {
     }
 
     /**
-     * Restricts general messaging access to real guest and host accounts. Admin
-     * routes are separate in this backend and do not grant conversation access.
+     * Restricts general messaging access to real guest and verified host
+     * accounts. Admin routes are separate in this backend and do not grant
+     * conversation access.
      */
     private User getMessagingParticipant(
             Authentication authentication
@@ -287,6 +291,12 @@ public class ConversationService {
 
             throw new RuntimeException(
                     "Only guests and hosts can use messaging"
+            );
+        }
+
+        if (participant.getRole() == Role.HOST) {
+            hostAccessService.requireVerifiedBusinessAccess(
+                    participant
             );
         }
 

@@ -27,19 +27,22 @@ public class BookingService {
     private final UserRepository userRepository;
     private final PropertyAvailabilityRepository availabilityRepository;
     private final NotificationService notificationService;
+    private final HostAccessService hostAccessService;
 
     public BookingService(
             BookingRepository bookingRepository,
             PropertyRepository propertyRepository,
             UserRepository userRepository,
             PropertyAvailabilityRepository availabilityRepository,
-            NotificationService notificationService
+            NotificationService notificationService,
+            HostAccessService hostAccessService
     ) {
         this.bookingRepository = bookingRepository;
         this.propertyRepository = propertyRepository;
         this.userRepository = userRepository;
         this.availabilityRepository = availabilityRepository;
         this.notificationService = notificationService;
+        this.hostAccessService = hostAccessService;
     }
 
     // CREATE BOOKING
@@ -277,11 +280,9 @@ public class BookingService {
             Authentication authentication
     ) {
 
-        String email = authentication.getName();
-
-        User host = userRepository.findByEmail(email)
-                .orElseThrow(() ->
-                        new RuntimeException("Host not found")
+        User host =
+                hostAccessService.getVerifiedHost(
+                        authentication
                 );
 
         return bookingRepository
@@ -315,6 +316,8 @@ public class BookingService {
                     "You are not allowed to manage this booking"
             );
         }
+
+        hostAccessService.requireVerifiedBusinessAccess(email);
 
         BookingStatus oldStatus =
                 booking.getStatus();

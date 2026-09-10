@@ -4,7 +4,6 @@ import com.elitebnb_backend.dto.HostEarningsResponse;
 import com.elitebnb_backend.entity.BookingStatus;
 import com.elitebnb_backend.entity.User;
 import com.elitebnb_backend.repository.BookingRepository;
-import com.elitebnb_backend.repository.UserRepository;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 
@@ -12,24 +11,23 @@ import org.springframework.stereotype.Service;
 public class EarningsService {
 
     private final BookingRepository bookingRepository;
-    private final UserRepository userRepository;
+    private final HostAccessService hostAccessService;
 
     public EarningsService(
             BookingRepository bookingRepository,
-            UserRepository userRepository
+            HostAccessService hostAccessService
     ) {
         this.bookingRepository = bookingRepository;
-        this.userRepository = userRepository;
+        this.hostAccessService = hostAccessService;
     }
 
     public HostEarningsResponse getHostEarnings(
             Authentication authentication
     ) {
 
-        User host = userRepository
-                .findByEmail(authentication.getName())
-                .orElseThrow(() ->
-                        new RuntimeException("Host not found")
+        User host =
+                hostAccessService.getVerifiedHost(
+                        authentication
                 );
 
         double confirmedRevenue =

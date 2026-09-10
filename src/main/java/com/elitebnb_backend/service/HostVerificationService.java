@@ -31,6 +31,7 @@ public class HostVerificationService {
         User host =
                 getHost(hostEmail);
 
+        validateSubmissionEligibility(host);
         validateRequest(request);
 
         HostVerification verification =
@@ -193,6 +194,34 @@ public class HostVerificationService {
         }
     }
 
+    /**
+     * Verification is the step after email confirmation and Host onboarding.
+     * Keeping this check before the verification row is loaded or created
+     * prevents incomplete Hosts from creating or resetting a PENDING review.
+     */
+    private void validateSubmissionEligibility(
+            User host
+    ) {
+
+        if (host.getAccountStatus() != AccountStatus.ACTIVE
+                || !host.isEmailVerified()
+                || !host.isHostOnboardingCompleted()
+                || isBlank(host.getFirstName())
+                || isBlank(host.getLastName())
+                || isBlank(host.getEmail())
+                || isBlank(host.getPhoneNumber())
+                || isBlank(host.getAddress())
+                || isBlank(host.getCity())
+                || isBlank(host.getState())
+                || isBlank(host.getCountry())
+                || isBlank(host.getProfileImageUrl())) {
+
+            throw new RuntimeException(
+                    "Host profile/onboarding must be completed before verification submission"
+            );
+        }
+    }
+
     private HostVerification getVerificationEntity(
             Long verificationId
     ) {
@@ -260,6 +289,14 @@ public class HostVerificationService {
         }
 
         return value.trim();
+    }
+
+    private boolean isBlank(
+            String value
+    ) {
+
+        return value == null
+                || value.trim().isEmpty();
     }
 
     private HostVerificationResponse map(
