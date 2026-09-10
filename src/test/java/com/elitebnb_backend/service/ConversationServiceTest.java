@@ -8,7 +8,6 @@ import com.elitebnb_backend.dto.SendMessageRequest;
 import com.elitebnb_backend.entity.Booking;
 import com.elitebnb_backend.entity.Conversation;
 import com.elitebnb_backend.entity.Message;
-import com.elitebnb_backend.entity.NotificationType;
 import com.elitebnb_backend.entity.Property;
 import com.elitebnb_backend.entity.PropertyType;
 import com.elitebnb_backend.entity.Role;
@@ -515,14 +514,65 @@ class ConversationServiceTest {
         assertThat(savedMessage.getBody()).isEqualTo("Hello host");
         assertThat(response.getSenderId()).isEqualTo(guest.getId());
 
-        verify(notificationService).createNotification(
+        verify(notificationService).createConversationMessageNotification(
                 eq(host),
                 eq("New message"),
                 eq("Jane Guest sent you a message about Ocean View Apartment."),
-                eq(NotificationType.SYSTEM),
+                eq(conversation.getId()),
+                eq(response.getId()),
                 isNull(),
                 eq(property)
         );
+        verify(notificationService, never())
+                .createConversationMessageNotification(
+                        eq(guest),
+                        any(String.class),
+                        any(String.class),
+                        any(Long.class),
+                        any(Long.class),
+                        any(),
+                        any()
+                );
+    }
+
+    /**
+     * Host-to-guest replies create one linked MESSAGE notification for the
+     * guest. The sender still receives no notification.
+     */
+    @Test
+    void hostMessageCreatesLinkedNotificationForGuest() {
+        Conversation conversation =
+                conversation(701L, guest, host, property, null);
+
+        when(conversationRepository.findById(conversation.getId()))
+                .thenReturn(Optional.of(conversation));
+
+        MessageResponse response =
+                conversationService.sendMessage(
+                        conversation.getId(),
+                        sendMessageRequest("Hello guest"),
+                        authenticationFor(host)
+                );
+
+        verify(notificationService).createConversationMessageNotification(
+                eq(guest),
+                eq("New message"),
+                eq("Hakeem Host sent you a message about Ocean View Apartment."),
+                eq(conversation.getId()),
+                eq(response.getId()),
+                isNull(),
+                eq(property)
+        );
+        verify(notificationService, never())
+                .createConversationMessageNotification(
+                        eq(host),
+                        any(String.class),
+                        any(String.class),
+                        any(Long.class),
+                        any(Long.class),
+                        any(),
+                        any()
+                );
     }
 
     /**
@@ -639,6 +689,11 @@ class ConversationServiceTest {
         verify(messageRepository).saveAll(
                 List.of(unreadHostMessage)
         );
+        verify(notificationService)
+                .markConversationMessageNotificationsRead(
+                        guest,
+                        conversation.getId()
+                );
     }
 
     /**

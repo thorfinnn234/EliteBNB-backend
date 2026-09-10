@@ -55,6 +55,9 @@ class HostSupportConversationServiceTest {
     @Mock
     private HostVerificationRepository hostVerificationRepository;
 
+    @Mock
+    private NotificationService notificationService;
+
     private HostSupportConversationService service;
 
     private User activeHost;
@@ -70,7 +73,8 @@ class HostSupportConversationServiceTest {
                         conversationRepository,
                         messageRepository,
                         userRepository,
-                        hostVerificationRepository
+                        hostVerificationRepository,
+                        notificationService
                 );
 
         activeHost =
@@ -590,6 +594,14 @@ class HostSupportConversationServiceTest {
                 .isSameAs(activeHost);
         assertThat(response.getSenderRole())
                 .isEqualTo(Role.HOST);
+        verify(notificationService, never())
+                .createHostSupportMessageNotification(
+                        any(User.class),
+                        any(String.class),
+                        any(String.class),
+                        any(Long.class),
+                        any(Long.class)
+                );
     }
 
     /**
@@ -625,6 +637,14 @@ class HostSupportConversationServiceTest {
                 .isEqualTo("Please upload a clearer ID");
         assertThat(response.getSenderRole())
                 .isEqualTo(Role.ADMIN);
+        verify(notificationService)
+                .createHostSupportMessageNotification(
+                        activeHost,
+                        "New support message",
+                        "Ada Admin sent you a verification support message.",
+                        conversation.getId(),
+                        response.getId()
+                );
     }
 
     /**
@@ -677,6 +697,11 @@ class HostSupportConversationServiceTest {
                 .isFalse();
         verify(messageRepository)
                 .saveAll(List.of(adminMessage));
+        verify(notificationService)
+                .markHostSupportMessageNotificationsRead(
+                        activeHost,
+                        conversation.getId()
+                );
     }
 
     /**

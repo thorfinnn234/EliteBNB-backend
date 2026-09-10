@@ -18,6 +18,10 @@ public class NotificationResponse {
 
     private Long bookingId;
     private Long propertyId;
+    private Long conversationId;
+    private Long messageId;
+    private Long hostSupportConversationId;
+    private Long hostSupportMessageId;
 
     private LocalDateTime createdAt;
 }

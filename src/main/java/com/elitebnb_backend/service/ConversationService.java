@@ -8,7 +8,6 @@ import com.elitebnb_backend.dto.SendMessageRequest;
 import com.elitebnb_backend.entity.Booking;
 import com.elitebnb_backend.entity.Conversation;
 import com.elitebnb_backend.entity.Message;
-import com.elitebnb_backend.entity.NotificationType;
 import com.elitebnb_backend.entity.Property;
 import com.elitebnb_backend.entity.PropertyImage;
 import com.elitebnb_backend.entity.Role;
@@ -248,6 +247,11 @@ public class ConversationService {
         );
 
         messageRepository.saveAll(unreadReceivedMessages);
+
+        notificationService.markConversationMessageNotificationsRead(
+                participant,
+                conversation.getId()
+        );
 
         return mapToConversationResponse(
                 conversation,
@@ -507,14 +511,15 @@ public class ConversationService {
             Message message,
             User recipient
     ) {
-        notificationService.createNotification(
+        notificationService.createConversationMessageNotification(
                 recipient,
                 "New message",
                 buildFullName(message.getSender())
                         + " sent you a message about "
                         + conversation.getProperty().getTitle()
                         + ".",
-                NotificationType.SYSTEM,
+                conversation.getId(),
+                message.getId(),
                 conversation.getBooking(),
                 conversation.getProperty()
         );

@@ -14,5 +14,9 @@ public enum NotificationType {
 
     HOST_RESPONSE,
 
+    MESSAGE,
+
+    HOST_SUPPORT_MESSAGE,
+
     SYSTEM
 }

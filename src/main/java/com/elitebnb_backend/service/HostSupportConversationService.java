@@ -35,6 +35,7 @@ public class HostSupportConversationService {
     private final HostSupportMessageRepository messageRepository;
     private final UserRepository userRepository;
     private final HostVerificationRepository hostVerificationRepository;
+    private final NotificationService notificationService;
 
     /**
      * Returns the authenticated Host's verification support thread, creating it
@@ -94,6 +95,11 @@ public class HostSupportConversationService {
         markUnreadMessagesFromRole(
                 conversation,
                 Role.ADMIN
+        );
+
+        notificationService.markHostSupportMessageNotificationsRead(
+                host,
+                conversation.getId()
         );
 
         return mapToConversationResponse(
@@ -308,7 +314,35 @@ public class HostSupportConversationService {
         conversation.touch();
         conversationRepository.save(conversation);
 
+        createSupportMessageNotification(
+                conversation,
+                savedMessage
+        );
+
         return mapToMessageResponse(savedMessage);
+    }
+
+    /**
+     * Creates Host-side notifications only when Admin sends a support reply.
+     * Host-to-Admin alerts stay in the C1 Admin support inbox unread count
+     * because the project uses a separate AdminNotification architecture.
+     */
+    private void createSupportMessageNotification(
+            HostSupportConversation conversation,
+            HostSupportMessage message
+    ) {
+        if (message.getSender().getRole() != Role.ADMIN) {
+            return;
+        }
+
+        notificationService.createHostSupportMessageNotification(
+                conversation.getHost(),
+                "New support message",
+                buildDisplayName(message.getSender())
+                        + " sent you a verification support message.",
+                conversation.getId(),
+                message.getId()
+        );
     }
 
     /**

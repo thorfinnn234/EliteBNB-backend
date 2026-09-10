@@ -47,6 +47,113 @@ public class NotificationService {
         notificationRepository.save(notification);
     }
 
+    /**
+     * Creates a linked notification for the existing USER <-> HOST conversation
+     * system. Booking and property context stay available, while conversationId
+     * and messageId give the frontend an exact chat target.
+     */
+    public void createConversationMessageNotification(
+            User recipient,
+            String title,
+            String message,
+            Long conversationId,
+            Long messageId,
+            Booking booking,
+            Property property
+    ) {
+
+        Notification notification = Notification.builder()
+                .recipient(recipient)
+                .title(title)
+                .message(message)
+                .type(NotificationType.MESSAGE)
+                .booking(booking)
+                .property(property)
+                .conversationId(conversationId)
+                .messageId(messageId)
+                .read(false)
+                .build();
+
+        notificationRepository.save(notification);
+    }
+
+    /**
+     * Creates a linked notification for Admin-to-Host verification support
+     * messages. Support conversation ids are separate from normal conversation
+     * ids so the frontend can route to the correct support screen.
+     */
+    public void createHostSupportMessageNotification(
+            User recipient,
+            String title,
+            String message,
+            Long hostSupportConversationId,
+            Long hostSupportMessageId
+    ) {
+
+        Notification notification = Notification.builder()
+                .recipient(recipient)
+                .title(title)
+                .message(message)
+                .type(NotificationType.HOST_SUPPORT_MESSAGE)
+                .hostSupportConversationId(hostSupportConversationId)
+                .hostSupportMessageId(hostSupportMessageId)
+                .read(false)
+                .build();
+
+        notificationRepository.save(notification);
+    }
+
+    /**
+     * Synchronizes normal conversation read state with notification read state.
+     * Only unread MESSAGE notifications for this exact recipient and
+     * conversation are marked; booking, review, system, and other conversation
+     * notifications are not loaded by the repository query.
+     */
+    public void markConversationMessageNotificationsRead(
+            User recipient,
+            Long conversationId
+    ) {
+
+        List<Notification> notifications =
+                notificationRepository
+                        .findByRecipientAndTypeAndConversationIdAndReadFalse(
+                                recipient,
+                                NotificationType.MESSAGE,
+                                conversationId
+                        );
+
+        notifications.forEach(notification ->
+                notification.setRead(true)
+        );
+
+        notificationRepository.saveAll(notifications);
+    }
+
+    /**
+     * Synchronizes Host-side support message reads with their linked
+     * HOST_SUPPORT_MESSAGE notifications. This intentionally targets the Host's
+     * normal notification inbox, not AdminNotification.
+     */
+    public void markHostSupportMessageNotificationsRead(
+            User recipient,
+            Long hostSupportConversationId
+    ) {
+
+        List<Notification> notifications =
+                notificationRepository
+                        .findByRecipientAndTypeAndHostSupportConversationIdAndReadFalse(
+                                recipient,
+                                NotificationType.HOST_SUPPORT_MESSAGE,
+                                hostSupportConversationId
+                        );
+
+        notifications.forEach(notification ->
+                notification.setRead(true)
+        );
+
+        notificationRepository.saveAll(notifications);
+    }
+
     // GET LOGGED-IN USER NOTIFICATIONS
     public List<NotificationResponse> getMyNotifications(
             Authentication authentication
@@ -194,6 +301,11 @@ public class NotificationService {
                 notification.getProperty() != null
                         ? notification.getProperty().getId()
                         : null,
+
+                notification.getConversationId(),
+                notification.getMessageId(),
+                notification.getHostSupportConversationId(),
+                notification.getHostSupportMessageId(),
 
                 notification.getCreatedAt()
         );

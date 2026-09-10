@@ -51,6 +51,23 @@ public class Notification {
     @JoinColumn(name = "property_id")
     private Property property;
 
+    /*
+     * Nullable deep-link ids for normal USER <-> HOST conversation messages.
+     * These are stored as plain ids to avoid coupling Notification persistence
+     * to the existing conversation/message entity graph.
+     */
+    private Long conversationId;
+
+    private Long messageId;
+
+    /*
+     * Nullable deep-link ids for Admin <-> Host support messaging. Support
+     * threads use separate tables from normal guest-host conversations.
+     */
+    private Long hostSupportConversationId;
+
+    private Long hostSupportMessageId;
+
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
