@@ -20,17 +20,20 @@ public class AvailabilityService {
     private final PropertyRepository propertyRepository;
     private final UserRepository userRepository;
     private final HostAccessService hostAccessService;
+    private final PropertyVisibilityService propertyVisibilityService;
 
     public AvailabilityService(
             PropertyAvailabilityRepository availabilityRepository,
             PropertyRepository propertyRepository,
             UserRepository userRepository,
-            HostAccessService hostAccessService
+            HostAccessService hostAccessService,
+            PropertyVisibilityService propertyVisibilityService
     ) {
         this.availabilityRepository = availabilityRepository;
         this.propertyRepository = propertyRepository;
         this.userRepository = userRepository;
         this.hostAccessService = hostAccessService;
+        this.propertyVisibilityService = propertyVisibilityService;
     }
 
     public PropertyAvailability blockDates(
@@ -92,9 +95,8 @@ public class AvailabilityService {
 
     public List<PropertyAvailability> getBlockedDates(Long propertyId) {
 
-        if (!propertyRepository.existsById(propertyId)) {
-            throw new RuntimeException("Property not found");
-        }
+        propertyVisibilityService
+                .requirePubliclyAccessible(propertyId);
 
         return availabilityRepository.findByPropertyId(propertyId);
     }

@@ -68,11 +68,17 @@ class HostBusinessAccessGatingTest {
     @Mock
     private HostAccessService hostAccessService;
 
+    private PropertyVisibilityService propertyVisibilityService;
     private User host;
     private Authentication authentication;
 
     @BeforeEach
     void setUp() {
+        propertyVisibilityService =
+                new PropertyVisibilityService(
+                        propertyRepository
+                );
+
         host =
                 verifiedHost();
 
@@ -344,6 +350,7 @@ class HostBusinessAccessGatingTest {
                 propertyImageRepository,
                 propertyAvailabilityRepository,
                 hostAccessService,
+                propertyVisibilityService,
                 cloudinaryService,
                 adminNotificationService
         );
@@ -353,11 +360,11 @@ class HostBusinessAccessGatingTest {
 
         return new BookingService(
                 bookingRepository,
-                propertyRepository,
                 userRepository,
                 propertyAvailabilityRepository,
                 notificationService,
-                hostAccessService
+                hostAccessService,
+                propertyVisibilityService
         );
     }
 

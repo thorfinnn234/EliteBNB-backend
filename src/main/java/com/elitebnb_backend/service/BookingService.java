@@ -9,7 +9,6 @@ import com.elitebnb_backend.entity.Property;
 import com.elitebnb_backend.entity.User;
 import com.elitebnb_backend.repository.BookingRepository;
 import com.elitebnb_backend.repository.PropertyAvailabilityRepository;
-import com.elitebnb_backend.repository.PropertyRepository;
 import com.elitebnb_backend.repository.UserRepository;
 
 import org.springframework.security.core.Authentication;
@@ -23,26 +22,26 @@ import java.util.List;
 public class BookingService {
 
     private final BookingRepository bookingRepository;
-    private final PropertyRepository propertyRepository;
     private final UserRepository userRepository;
     private final PropertyAvailabilityRepository availabilityRepository;
     private final NotificationService notificationService;
     private final HostAccessService hostAccessService;
+    private final PropertyVisibilityService propertyVisibilityService;
 
     public BookingService(
             BookingRepository bookingRepository,
-            PropertyRepository propertyRepository,
             UserRepository userRepository,
             PropertyAvailabilityRepository availabilityRepository,
             NotificationService notificationService,
-            HostAccessService hostAccessService
+            HostAccessService hostAccessService,
+            PropertyVisibilityService propertyVisibilityService
     ) {
         this.bookingRepository = bookingRepository;
-        this.propertyRepository = propertyRepository;
         this.userRepository = userRepository;
         this.availabilityRepository = availabilityRepository;
         this.notificationService = notificationService;
         this.hostAccessService = hostAccessService;
+        this.propertyVisibilityService = propertyVisibilityService;
     }
 
     // CREATE BOOKING
@@ -59,12 +58,15 @@ public class BookingService {
                         new RuntimeException("User not found")
                 );
 
-        // 2. Find property
-        Property property = propertyRepository
-                .findById(request.getPropertyId())
-                .orElseThrow(() ->
-                        new RuntimeException("Property not found")
-                );
+        // 2. Find a public/bookable property. This raw-id path uses the same
+        // visibility rule as public list/search/detail so pending, rejected,
+        // inactive, or suspended listings cannot be booked by URL guessing.
+        Property property =
+                propertyVisibilityService
+                        .requirePubliclyAccessible(
+                                request.getPropertyId(),
+                                "Property is not currently bookable"
+                        );
 
         // 3. Validate dates
         LocalDate today = LocalDate.now();

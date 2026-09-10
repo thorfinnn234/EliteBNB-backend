@@ -21,6 +21,7 @@ public class FavoriteService {
     private final FavoriteRepository favoriteRepository;
     private final PropertyRepository propertyRepository;
     private final UserRepository userRepository;
+    private final PropertyVisibilityService propertyVisibilityService;
 
     public FavoriteResponse addFavorite(
             Long propertyId,
@@ -28,10 +29,9 @@ public class FavoriteService {
     ) {
         User user = getUser(userEmail);
 
-        Property property = propertyRepository.findById(propertyId)
-                .orElseThrow(() ->
-                        new RuntimeException("Property not found")
-                );
+        Property property =
+                propertyVisibilityService
+                        .requirePubliclyAccessible(propertyId);
 
         if (favoriteRepository.existsByUserAndProperty(user, property)) {
             throw new RuntimeException(
@@ -57,6 +57,11 @@ public class FavoriteService {
         return favoriteRepository
                 .findByUserOrderByCreatedAtDesc(user)
                 .stream()
+                .filter(favorite ->
+                        propertyVisibilityService.isPubliclyAccessible(
+                                favorite.getProperty()
+                        )
+                )
                 .map(this::mapToResponse)
                 .toList();
     }
@@ -67,10 +72,9 @@ public class FavoriteService {
     ) {
         User user = getUser(userEmail);
 
-        Property property = propertyRepository.findById(propertyId)
-                .orElseThrow(() ->
-                        new RuntimeException("Property not found")
-                );
+        Property property =
+                propertyVisibilityService
+                        .requirePubliclyAccessible(propertyId);
 
         return favoriteRepository
                 .existsByUserAndProperty(user, property);

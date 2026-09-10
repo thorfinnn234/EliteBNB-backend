@@ -127,4 +127,13 @@ public class PropertySpecification {
                         )
                 );
     }
+
+    /**
+     * Groups the public listing/search visibility predicates in one named
+     * specification so list and filtered search do not drift in meaning.
+     */
+    public static Specification<Property> isPubliclyAccessible() {
+        return isActive()
+                .and(isApprovedOrLegacy());
+    }
 }

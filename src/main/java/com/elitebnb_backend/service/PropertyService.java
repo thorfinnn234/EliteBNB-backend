@@ -36,6 +36,7 @@ public class PropertyService {
     private final PropertyImageRepository propertyImageRepository;
     private final PropertyAvailabilityRepository propertyAvailabilityRepository;
     private final HostAccessService hostAccessService;
+    private final PropertyVisibilityService propertyVisibilityService;
     private final CloudinaryService cloudinaryService;
     private final AdminNotificationService adminNotificationService;
 
@@ -44,6 +45,7 @@ public class PropertyService {
             PropertyImageRepository propertyImageRepository,
             PropertyAvailabilityRepository propertyAvailabilityRepository,
             HostAccessService hostAccessService,
+            PropertyVisibilityService propertyVisibilityService,
             CloudinaryService cloudinaryService,
             AdminNotificationService adminNotificationService
     ) {
@@ -51,6 +53,7 @@ public class PropertyService {
         this.propertyImageRepository = propertyImageRepository;
         this.propertyAvailabilityRepository = propertyAvailabilityRepository;
         this.hostAccessService = hostAccessService;
+        this.propertyVisibilityService = propertyVisibilityService;
         this.cloudinaryService = cloudinaryService;
         this.adminNotificationService = adminNotificationService;
     }
@@ -125,9 +128,8 @@ public class PropertyService {
     ) {
 
         Specification<Property> spec =
-                Specification
-                        .where(PropertySpecification.isActive())
-                        .and(PropertySpecification.isApprovedOrLegacy())
+                PropertySpecification
+                        .isPubliclyAccessible()
                         .and(PropertySpecification.hasLocation(location))
                         .and(PropertySpecification.hasPropertyType(propertyType))
                         .and(PropertySpecification.hasMinimumPrice(minPrice))
@@ -145,21 +147,9 @@ public class PropertyService {
     // GET PROPERTY BY ID
     public PropertyResponse getPropertyById(Long id) {
 
-        Property property = propertyRepository
-                .findById(id)
-                .orElseThrow(() ->
-                        new RuntimeException(
-                                "Property not found"
-                        )
-                );
-
-        if (property.getStatus() != PropertyStatus.ACTIVE
-                || !isApprovedOrLegacy(property)) {
-
-            throw new RuntimeException(
-                    "Property not found"
-            );
-        }
+        Property property =
+                propertyVisibilityService
+                        .requirePubliclyAccessible(id);
 
         return mapToResponse(property);
     }
@@ -428,11 +418,8 @@ public class PropertyService {
             Long propertyId
     ) {
 
-        if (!propertyRepository.existsById(propertyId)) {
-            throw new RuntimeException(
-                    "Property not found"
-            );
-        }
+        propertyVisibilityService
+                .requirePubliclyAccessible(propertyId);
 
         return propertyImageRepository
                 .findByPropertyId(propertyId);
@@ -611,7 +598,9 @@ public class PropertyService {
                 property.getMaxGuests(),
                 property.getPropertyType(),
                 property.getStatus(),
-                effectiveApprovalStatus(property),
+                propertyVisibilityService.effectiveApprovalStatus(
+                        property
+                ),
                 property.getAmenities(),
                 imageUrls,
                 property.getHost().getId(),
@@ -621,23 +610,5 @@ public class PropertyService {
                 property.getCreatedAt(),
                 property.getUpdatedAt()
         );
-    }
-
-    private boolean isApprovedOrLegacy(
-            Property property
-    ) {
-
-        return property.getApprovalStatus() == null
-                || property.getApprovalStatus()
-                == PropertyApprovalStatus.APPROVED;
-    }
-
-    private PropertyApprovalStatus effectiveApprovalStatus(
-            Property property
-    ) {
-
-        return property.getApprovalStatus() != null
-                ? property.getApprovalStatus()
-                : PropertyApprovalStatus.APPROVED;
     }
 }
