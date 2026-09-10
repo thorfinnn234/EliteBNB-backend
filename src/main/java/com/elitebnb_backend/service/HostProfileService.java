@@ -138,6 +138,7 @@ public class HostProfileService {
                 host.getFirstName(),
                 host.getLastName(),
                 host.getEmail(),
+                host.isEmailVerified(),
                 host.getPhoneNumber(),
                 host.getBio(),
                 host.getLocation(),
