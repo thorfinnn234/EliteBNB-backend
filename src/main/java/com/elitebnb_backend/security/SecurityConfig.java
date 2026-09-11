@@ -7,6 +7,11 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import java.util.List;
 
 @Configuration
 public class SecurityConfig {
@@ -25,6 +30,13 @@ public class SecurityConfig {
     ) throws Exception {
 
         http
+                // =========================
+                // CORS
+                // =========================
+                .cors(cors ->
+                        cors.configurationSource(corsConfigurationSource())
+                )
+
                 .csrf(csrf -> csrf.disable())
 
                 .sessionManagement(session ->
@@ -44,23 +56,21 @@ public class SecurityConfig {
                         )
                         .permitAll()
 
-
-                                // =========================
-// MONITORING / ACTUATOR
-// =========================
-                                .requestMatchers(
-                                        "/actuator/health",
-                                        "/actuator/info",
-                                        "/actuator/prometheus"
-                                )
-                                .permitAll()
+                        // =========================
+                        // MONITORING / ACTUATOR
+                        // =========================
+                        .requestMatchers(
+                                "/actuator/health",
+                                "/actuator/info",
+                                "/actuator/prometheus"
+                        )
+                        .permitAll()
 
                         // =========================
                         // PROPERTY - HOST
                         // =========================
 
                         // HOST'S OWN PROPERTIES
-                        // Must stay before public property GET rules
                         .requestMatchers(
                                 HttpMethod.GET,
                                 "/api/properties/my"
@@ -95,21 +105,19 @@ public class SecurityConfig {
                         )
                         .hasRole("HOST")
 
-                        // DELETE PROPERTY
-                                // HOST - DELETE PROPERTY IMAGE
-                                .requestMatchers(
-                                        HttpMethod.DELETE,
-                                        "/api/properties/*/images/*"
-                                )
-                                .hasRole("HOST")
+                        // HOST - DELETE PROPERTY IMAGE
+                        .requestMatchers(
+                                HttpMethod.DELETE,
+                                "/api/properties/*/images/*"
+                        )
+                        .hasRole("HOST")
 
-// HOST - CHANGE PROPERTY COVER IMAGE
-                                .requestMatchers(
-                                        HttpMethod.PATCH,
-                                        "/api/properties/*/images/*/cover"
-                                )
-                                .hasRole("HOST")
-
+                        // HOST - CHANGE PROPERTY COVER IMAGE
+                        .requestMatchers(
+                                HttpMethod.PATCH,
+                                "/api/properties/*/images/*/cover"
+                        )
+                        .hasRole("HOST")
 
                         // =========================
                         // PROPERTY AVAILABILITY
@@ -128,7 +136,6 @@ public class SecurityConfig {
                                 "/api/properties/*/availability/*"
                         )
                         .hasRole("HOST")
-
 
                         // =========================
                         // BOOKINGS
@@ -149,7 +156,6 @@ public class SecurityConfig {
                         .hasRole("USER")
 
                         // USER - CANCEL OWN PENDING RESERVATION
-                        // The service still validates ownership and PENDING-only status.
                         .requestMatchers(
                                 HttpMethod.PATCH,
                                 "/api/bookings/*/cancel"
@@ -170,7 +176,6 @@ public class SecurityConfig {
                         )
                         .hasRole("HOST")
 
-
                         // =========================
                         // HOST EARNINGS
                         // =========================
@@ -181,17 +186,10 @@ public class SecurityConfig {
                         )
                         .hasRole("HOST")
 
-
                         // =========================
                         // PUBLIC PROPERTY ENDPOINTS
                         // =========================
 
-                        // Includes:
-                        // GET /api/properties
-                        // GET /api/properties/{id}
-                        // GET /api/properties/{id}/images
-                        // GET /api/properties/{id}/availability
-                        // GET /api/properties/search
                         .requestMatchers(
                                 HttpMethod.GET,
                                 "/api/properties",
@@ -199,76 +197,123 @@ public class SecurityConfig {
                         )
                         .permitAll()
 
+                        // =========================
+                        // HOST DASHBOARD / PROFILE
+                        // =========================
 
-                                .requestMatchers(
-                                        HttpMethod.GET,
-                                        "/api/host/dashboard"
-                                )
-                                .hasRole("HOST")
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/host/dashboard"
+                        )
+                        .hasRole("HOST")
 
-                                .requestMatchers(
-                                        HttpMethod.GET,
-                                        "/api/host/profile"
-                                )
-                                .hasRole("HOST")
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/host/profile"
+                        )
+                        .hasRole("HOST")
 
-                                .requestMatchers(
-                                        HttpMethod.PUT,
-                                        "/api/host/profile"
-                                )
-                                .hasRole("HOST")
+                        .requestMatchers(
+                                HttpMethod.PUT,
+                                "/api/host/profile"
+                        )
+                        .hasRole("HOST")
 
-                                .requestMatchers(
-                                        HttpMethod.POST,
-                                        "/api/host/profile/image"
-                                )
-                                .hasRole("HOST")
+                        .requestMatchers(
+                                HttpMethod.POST,
+                                "/api/host/profile/image"
+                        )
+                        .hasRole("HOST")
 
-                                .requestMatchers("/api/notifications/**")
-                                .authenticated()
+                        // =========================
+                        // NOTIFICATIONS
+                        // =========================
 
+                        .requestMatchers("/api/notifications/**")
+                        .authenticated()
 
-                                .requestMatchers(
-                                        HttpMethod.GET,
-                                        "/api/properties/*/reviews"
-                                ).permitAll()
+                        // =========================
+                        // REVIEWS
+                        // =========================
 
-                                .requestMatchers(
-                                        HttpMethod.POST,
-                                        "/api/reviews"
-                                ).hasRole("USER")
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/properties/*/reviews"
+                        )
+                        .permitAll()
 
-                                .requestMatchers(
-                                        HttpMethod.GET,
-                                        "/api/reviews/my"
-                                ).hasRole("USER")
+                        .requestMatchers(
+                                HttpMethod.POST,
+                                "/api/reviews"
+                        )
+                        .hasRole("USER")
 
-                                .requestMatchers(
-                                        HttpMethod.GET,
-                                        "/api/host/reviews"
-                                ).hasRole("HOST")
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/reviews/my"
+                        )
+                        .hasRole("USER")
 
-                                .requestMatchers(
-                                        HttpMethod.PUT,
-                                        "/api/reviews/*/response"
-                                ).hasRole("HOST")
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/host/reviews"
+                        )
+                        .hasRole("HOST")
 
-                                .requestMatchers("/api/user/profile/**").hasRole("USER")
+                        .requestMatchers(
+                                HttpMethod.PUT,
+                                "/api/reviews/*/response"
+                        )
+                        .hasRole("HOST")
 
-                                .requestMatchers("/api/host/onboarding/**").hasRole("HOST")
+                        // =========================
+                        // USER PROFILE
+                        // =========================
 
-                                .requestMatchers("/api/host/verification/**").hasRole("HOST")
+                        .requestMatchers("/api/user/profile/**")
+                        .hasRole("USER")
 
-                                .requestMatchers(
-                                        "/api/host/support-conversation",
-                                        "/api/host/support-conversation/**"
-                                ).hasRole("HOST")
+                        // =========================
+                        // HOST ONBOARDING
+                        // =========================
 
-                                .requestMatchers("/api/payments/**").hasRole("USER")
+                        .requestMatchers("/api/host/onboarding/**")
+                        .hasRole("HOST")
 
-                                .requestMatchers("/api/refunds/**").hasRole("USER")
+                        // =========================
+                        // HOST VERIFICATION
+                        // =========================
 
-                                .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/api/host/verification/**")
+                        .hasRole("HOST")
+
+                        // =========================
+                        // HOST SUPPORT
+                        // =========================
+
+                        .requestMatchers(
+                                "/api/host/support-conversation",
+                                "/api/host/support-conversation/**"
+                        )
+                        .hasRole("HOST")
+
+                        // =========================
+                        // PAYMENTS / REFUNDS
+                        // =========================
+
+                        .requestMatchers("/api/payments/**")
+                        .hasRole("USER")
+
+                        .requestMatchers("/api/refunds/**")
+                        .hasRole("USER")
+
+                        // =========================
+                        // ADMIN
+                        // =========================
+
+                        .requestMatchers("/api/admin/**")
+                        .hasRole("ADMIN")
+
                         // =========================
                         // EVERYTHING ELSE
                         // =========================
@@ -283,5 +328,47 @@ public class SecurityConfig {
                 );
 
         return http.build();
+    }
+
+    // =====================================================
+    // CORS CONFIGURATION
+    // =====================================================
+
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+
+        CorsConfiguration configuration = new CorsConfiguration();
+
+        configuration.setAllowedOrigins(List.of(
+                "http://localhost:5173"
+        ));
+
+        configuration.setAllowedMethods(List.of(
+                "GET",
+                "POST",
+                "PUT",
+                "PATCH",
+                "DELETE",
+                "OPTIONS"
+        ));
+
+        configuration.setAllowedHeaders(List.of(
+                "Authorization",
+                "Content-Type",
+                "Accept"
+        ));
+
+        configuration.setExposedHeaders(List.of(
+                "Authorization"
+        ));
+
+        configuration.setAllowCredentials(true);
+
+        UrlBasedCorsConfigurationSource source =
+                new UrlBasedCorsConfigurationSource();
+
+        source.registerCorsConfiguration("/**", configuration);
+
+        return source;
     }
 }
