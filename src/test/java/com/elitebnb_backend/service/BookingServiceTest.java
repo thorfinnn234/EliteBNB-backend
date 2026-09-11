@@ -25,9 +25,7 @@ import java.time.LocalDate;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyList;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -47,6 +45,9 @@ class BookingServiceTest {
 
     @Mock
     private NotificationService notificationService;
+
+    @Mock
+    private PropertyVisibilityService propertyVisibilityService;
 
     @Mock
     private Authentication authentication;
@@ -87,8 +88,7 @@ class BookingServiceTest {
     @Test
     void shouldCreateBookingSuccessfully() {
 
-        CreateBookingRequest request =
-                new CreateBookingRequest();
+        CreateBookingRequest request = new CreateBookingRequest();
 
         request.setPropertyId(10L);
         request.setCheckIn(LocalDate.now().plusDays(1));
@@ -101,8 +101,10 @@ class BookingServiceTest {
         when(userRepository.findByEmail("guest@test.com"))
                 .thenReturn(Optional.of(guest));
 
-        when(propertyRepository.findById(10L))
-                .thenReturn(Optional.of(property));
+        when(propertyVisibilityService.requirePubliclyAccessible(
+                eq(10L),
+                eq("Property is not currently bookable")
+        )).thenReturn(property);
 
         when(bookingRepository.existsOverlappingBooking(
                 eq(10L),
@@ -112,38 +114,24 @@ class BookingServiceTest {
         )).thenReturn(false);
 
         when(availabilityRepository.existsOverlappingBlock(
-                10L,
-                request.getCheckIn(),
-                request.getCheckOut()
+                eq(10L),
+                eq(request.getCheckIn()),
+                eq(request.getCheckOut())
         )).thenReturn(false);
 
         when(bookingRepository.save(any(Booking.class)))
                 .thenAnswer(invocation -> {
-                    Booking booking =
-                            invocation.getArgument(0);
-
+                    Booking booking = invocation.getArgument(0);
                     booking.setId(100L);
-
                     return booking;
                 });
 
         BookingResponse response =
-                bookingService.createBooking(
-                        request,
-                        authentication
-                );
+                bookingService.createBooking(request, authentication);
 
         assertNotNull(response);
-
-        assertEquals(
-                BookingStatus.PENDING,
-                response.getStatus()
-        );
-
-        assertEquals(
-                150000.0,
-                response.getTotalAmount()
-        );
+        assertEquals(BookingStatus.PENDING, response.getStatus());
+        assertEquals(150000.0, response.getTotalAmount());
 
         verify(bookingRepository, times(1))
                 .save(any(Booking.class));
@@ -162,8 +150,7 @@ class BookingServiceTest {
     @Test
     void shouldRejectHostBookingOwnProperty() {
 
-        CreateBookingRequest request =
-                new CreateBookingRequest();
+        CreateBookingRequest request = new CreateBookingRequest();
 
         request.setPropertyId(10L);
         request.setCheckIn(LocalDate.now().plusDays(1));
@@ -176,8 +163,10 @@ class BookingServiceTest {
         when(userRepository.findByEmail("host@test.com"))
                 .thenReturn(Optional.of(host));
 
-        when(propertyRepository.findById(10L))
-                .thenReturn(Optional.of(property));
+        when(propertyVisibilityService.requirePubliclyAccessible(
+                eq(10L),
+                eq("Property is not currently bookable")
+        )).thenReturn(property);
 
         RuntimeException exception =
                 assertThrows(
