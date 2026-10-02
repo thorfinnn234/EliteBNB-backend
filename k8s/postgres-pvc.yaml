@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: elitebnb-postgres-data
+  namespace: elitebnb
+  labels:
+    app.kubernetes.io/name: elitebnb-postgres
+    app.kubernetes.io/part-of: elitebnb
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi

@@ -1,20 +1,21 @@
-# Build stage
 FROM eclipse-temurin:21-jdk AS build
 
-WORKDIR /app
+WORKDIR /workspace
 
-COPY . .
-
+COPY mvnw pom.xml ./
+COPY .mvn .mvn
 RUN chmod +x mvnw
-RUN ./mvnw clean package -DskipTests
 
+COPY src src
+RUN ./mvnw -B clean package -DskipTests
 
-# Run stage
 FROM eclipse-temurin:21-jre
 
 WORKDIR /app
 
-COPY --from=build /app/target/*.jar app.jar
+ENV SERVER_PORT=8086
+
+COPY --from=build /workspace/target/*.jar app.jar
 
 EXPOSE 8086
 
